@@ -1,0 +1,110 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white;
+}
+
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 270px;
+  padding: 40px 25px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar nav a {
+  display: block;
+  margin: 20px 0;
+  padding: 12px 15px;
+  border-radius: 12px;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.sidebar nav a:hover {
+  background: rgba(99, 102, 241, 0.3);
+  color: white;
+  transform: translateX(5px);
+}
+
+.logout-btn {
+  color: #ef4444;
+  text-decoration: none;
+}
+
+.main-content {
+  flex: 1;
+  padding: 60px;
+}
+
+h1 {
+  margin-bottom: 40px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+}
+
+.stat-card {
+  padding: 35px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #6366f1, #06b6d4);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+  transition: 0.4s;
+}
+
+.stat-card:hover {
+  transform: translateY(-10px);
+}
+
+.stat-card p {
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 25px;
+  border-radius: 20px;
+  margin-top: 30px;
+}
+
+canvas {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 20px;
+}
+input[type="text"],
+input[type="number"],
+input[type="file"] {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+}
+.active-link {
+  background: rgba(99, 102, 241, 0.3);
+  color: white !important;
+  font-weight: 600;
+}
+
+.btn-danger {
+  background: #ef4444;
+}
