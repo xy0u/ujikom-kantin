@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 12, 2026 at 09:06 PM
+-- Generation Time: Feb 20, 2026 at 04:42 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -96,16 +96,18 @@ CREATE TABLE `products` (
   `price` int(11) DEFAULT NULL,
   `stock` int(11) DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
-  `status` enum('available','soldout','coming') DEFAULT 'available'
+  `status` enum('available','soldout','coming') DEFAULT 'available',
+  `is_coming_soon` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `category_id`, `name`, `price`, `stock`, `image`, `status`) VALUES
-(8, NULL, 'jus', 10000, NULL, '1770824449_Attention à ces jus de fruits qui contiennent plus de sucre que les sodas.jpg', 'available'),
-(9, NULL, 'nasi goreng ', 15000, NULL, '1770827070_10+ Resep Nasi Goreng Rumahan, Rasa Mewah, Coba Pilih.jpg', 'available');
+INSERT INTO `products` (`id`, `category_id`, `name`, `price`, `stock`, `image`, `status`, `is_coming_soon`) VALUES
+(8, 1, 'jus  botol', 10000, 6, '1770824449_Attention à ces jus de fruits qui contiennent plus de sucre que les sodas.jpg', 'available', 0),
+(9, 2, 'nasi goreng ', 15000, 4, '1770827070_10+ Resep Nasi Goreng Rumahan, Rasa Mewah, Coba Pilih.jpg', 'available', 0),
+(10, 1, 'kopi', 5000, 8, '1771491823_This Iced Hot Cocoa Is Made With Chocolate Ice Cubes.jpg', 'available', 0);
 
 -- --------------------------------------------------------
 
@@ -232,7 +234,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `product_variants`

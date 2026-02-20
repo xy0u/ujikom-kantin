@@ -1,138 +1,172 @@
-/* ============================================
-   ELVA BRUTALIST SYSTEM - KANTIN
-   public.js
-   ============================================ */
+document.addEventListener("DOMContentLoaded", function () {
+  // ========== TOAST NOTIFICATION ==========
+  const toast = document.getElementById("toast");
 
-document.addEventListener("DOMContentLoaded", () => {
-  /* ---- TOAST NOTIFICATION ---- */
-  const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.textContent = "ADDED TO CART";
-  document.body.appendChild(toast);
+  function showToast(message, type = "success") {
+    if (!toast) return;
 
-  let toastTimer;
-  function showToast(message) {
-    toast.textContent = message || "ADDED TO CART";
-    toast.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+    toast.textContent = message;
+    toast.classList.remove("hide");
+    toast.style.animation = "toastIn 0.5s forwards";
+
+    setTimeout(() => {
+      toast.style.animation = "toastOut 0.5s forwards";
+      setTimeout(() => {
+        toast.classList.add("hide");
+      }, 500);
+    }, 2500);
   }
 
-  /* ---- ADD TO CART (AJAX) ---- */
+  // ========== ADD TO CART ==========
   document.querySelectorAll(".addCart").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click", function (e) {
       e.stopPropagation();
-      const id = btn.dataset.id;
+      const id = this.dataset.id;
+      const originalText = this.innerHTML;
 
-      // Ripple effect on button
-      btn.style.transform = "scale(0.95)";
-      setTimeout(() => (btn.style.transform = ""), 200);
+      // Animasi button
+      this.style.transform = "scale(0.95)";
+      this.innerHTML = "...";
 
-      fetch("cart/add.php", {
+      fetch("cart/add_ajax.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "product_id=" + id + "&qty=1",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Update cart count di navbar
+            const cartLink = document.querySelector(
+              'header nav a[href*="cart"]',
+            );
+            if (cartLink) {
+              cartLink.innerHTML = `CART (${data.cartCount})`;
+            }
+
+            showToast("✓ ADDED TO CART");
+
+            // Animasi button sukses
+            this.style.background = "#22c55e";
+            this.innerHTML = "✓ ADDED";
+            setTimeout(() => {
+              this.style.transform = "";
+              this.style.background = "";
+              this.innerHTML = originalText;
+            }, 2000);
+          } else {
+            showToast("✗ " + data.message);
+            this.style.transform = "";
+            this.innerHTML = originalText;
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          showToast("✗ ERROR");
+          this.style.transform = "";
+          this.innerHTML = originalText;
+        });
+    });
+  });
+
+  // ========== ADD TO WISHLIST ==========
+  document.querySelectorAll(".addWishlist").forEach((btn) => {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const id = this.dataset.id;
+
+      fetch("wishlist_add.php", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: "id=" + id,
       })
-        .then((r) => r.text())
-        .then(() => {
-          showToast("ADDED TO CART");
-          // Update cart count in nav
-          const cartLink = document.querySelector('header nav a[href*="cart"]');
-          if (cartLink) {
-            const match = cartLink.textContent.match(/\d+/);
-            const current = match ? parseInt(match[0]) : 0;
-            cartLink.textContent = "Cart (" + (current + 1) + ")";
+        .then((response) => response.text())
+        .then((count) => {
+          // Update wishlist count
+          const wishlistLink = document.querySelector(
+            'header nav a[href*="wishlist"]',
+          );
+          if (wishlistLink) {
+            wishlistLink.innerHTML = `WISHLIST (${count})`;
           }
-        })
-        .catch(() => showToast("ERROR - TRY AGAIN"));
+
+          showToast("❤️ ADDED TO WISHLIST");
+
+          // Animasi button
+          this.style.background = "#ef4444";
+          this.innerHTML = "❤️ ADDED";
+          setTimeout(() => {
+            this.style.background = "transparent";
+            this.innerHTML = "♥ WISHLIST";
+          }, 2000);
+        });
     });
   });
 
-  /* ---- GSAP CARD ANIMATIONS ---- */
-  if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
+  // ========== GSAP ANIMATIONS ==========
+  if (typeof gsap !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
 
-    // Hero title reveal
-    const heroTitle = document.querySelector(".hero h1");
-    if (heroTitle) {
-      gsap.fromTo(
-        heroTitle,
-        { y: 120, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1.4,
-          ease: "power4.out",
-          delay: 0.2,
-        },
-      );
-    }
-
-    // Hero subtitle
-    const heroP = document.querySelector(".hero p");
-    if (heroP) {
-      gsap.fromTo(
-        heroP,
-        { y: 40, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          ease: "power3.out",
-          delay: 0.6,
-        },
-      );
-    }
-
-    // Product cards stagger in
-    const cards = document.querySelectorAll(".card");
-    cards.forEach((card, i) => {
-      gsap.fromTo(
-        card,
-        { y: 100, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: card,
-            start: "top 90%",
-            end: "top 50%",
-            toggleActions: "play none none none",
-          },
-          delay: (i % 2) * 0.15, // stagger left/right columns
-        },
-      );
+    // Hero animation
+    gsap.from(".hero h1", {
+      y: 200,
+      opacity: 0,
+      duration: 1.5,
+      ease: "power4.out",
     });
 
-    // Header fade on scroll
-    const header = document.querySelector("header");
-    if (header) {
-      let lastScroll = 0;
-      window.addEventListener("scroll", () => {
-        const current = window.scrollY;
-        if (current > lastScroll && current > 200) {
-          header.style.opacity = "0";
-          header.style.transform = "translateY(-20px)";
-          header.style.transition = "all 0.5s cubic-bezier(0.8, 0, 0.2, 1)";
-        } else {
-          header.style.opacity = "1";
-          header.style.transform = "translateY(0)";
-        }
-        lastScroll = current;
-      });
-    }
+    gsap.from(".hero p", {
+      y: 50,
+      opacity: 0,
+      duration: 1,
+      delay: 0.5,
+      ease: "power3.out",
+    });
+
+    // Cards stagger
+    gsap.from(".card", {
+      y: 100,
+      opacity: 0,
+      duration: 1,
+      stagger: 0.2,
+      ease: "power3.out",
+      scrollTrigger: {
+        trigger: ".products",
+        start: "top 80%",
+      },
+    });
   }
 
-  /* ---- SMOOTH SCROLL FOR ANCHOR LINKS ---- */
-  document.querySelectorAll('a[href^="#"]').forEach((a) => {
-    a.addEventListener("click", (e) => {
+  // ========== SMOOTH SCROLL ==========
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener("click", function (e) {
       e.preventDefault();
-      const target = document.querySelector(a.getAttribute("href"));
+      const target = document.querySelector(this.getAttribute("href"));
       if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        target.scrollIntoView({ behavior: "smooth" });
       }
     });
+  });
+
+  // ========== HEADER SCROLL EFFECT ==========
+  const header = document.querySelector("header");
+  let lastScroll = 0;
+
+  window.addEventListener("scroll", () => {
+    const currentScroll = window.pageYOffset;
+
+    if (currentScroll > 100) {
+      header.classList.add("scrolled");
+    } else {
+      header.classList.remove("scrolled");
+    }
+
+    if (currentScroll > lastScroll && currentScroll > 200) {
+      header.style.transform = "translateY(-100%)";
+    } else {
+      header.style.transform = "translateY(0)";
+    }
+
+    lastScroll = currentScroll;
   });
 });

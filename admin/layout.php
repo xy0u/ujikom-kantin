@@ -1,7 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE)
      session_start();
-}
 
 // Proteksi Admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
@@ -22,26 +21,23 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </head>
 
 <body>
-
      <div class="admin-container">
           <aside class="sidebar">
-               <div class="brand">ADMIN PANEL</div>
-
+               <div class="brand">KANTIN ADMIN</div>
                <div class="admin-profile">
                     <small>Logged in as</small>
-                    <p><strong><?= $_SESSION['user_name'] ?></strong></p>
+                    <p><strong><?= htmlspecialchars($_SESSION['user_name'] ?? 'Admin') ?></strong></p>
+                    <small style="color: #22c55e;"><?= $_SESSION['user_role'] ?? 'admin' ?></small>
                </div>
-
                <nav>
-                    <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>">Overview</a>
-                    <a href="products.php" class="<?= $current_page == 'products.php' ? 'active' : '' ?>">Inventory</a>
+                    <a href="dashboard.php"
+                         class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>">Dashboard</a>
+                    <a href="products.php" class="<?= $current_page == 'products.php' ? 'active' : '' ?>">Produk</a>
                     <a href="categories.php"
-                         class="<?= $current_page == 'categories.php' ? 'active' : '' ?>">Categories</a>
-                    <a href="orders.php" class="<?= $current_page == 'orders.php' ? 'active' : '' ?>">Transactions</a>
+                         class="<?= $current_page == 'categories.php' ? 'active' : '' ?>">Kategori</a>
+                    <a href="orders.php" class="<?= $current_page == 'orders.php' ? 'active' : '' ?>">Transaksi</a>
                </nav>
-
                <a href="../auth/logout.php" class="logout-btn" onclick="return confirm('Yakin ingin keluar?')">Sign
                     Out</a>
           </aside>
-
           <main class="main-content">

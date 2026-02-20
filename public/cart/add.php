@@ -1,18 +1,33 @@
 <?php
 session_start();
+require "../../core/database.php";
 
-$id = (int) $_POST['id'];
-$qty = (int) $_POST['qty'];
+$id = (int) ($_POST['id'] ?? 0);
+$qty = (isset($_POST['qty']) && (int) $_POST['qty'] > 0) ? (int) $_POST['qty'] : 1;
 
-if (!isset($_SESSION['cart'])) {
-     $_SESSION['cart'] = [];
-}
+if ($id > 0) {
+     // Check stock
+     $check = mysqli_query($conn, "SELECT stock FROM products WHERE id = $id");
+     $product = mysqli_fetch_assoc($check);
 
-if (isset($_SESSION['cart'][$id])) {
-     $_SESSION['cart'][$id] += $qty;
+     if ($product && $product['stock'] >= $qty) {
+          if (!isset($_SESSION['cart']))
+               $_SESSION['cart'] = [];
+
+          $key = $id . "_0";
+
+          if (isset($_SESSION['cart'][$key])) {
+               $_SESSION['cart'][$key] += $qty;
+          } else {
+               $_SESSION['cart'][$key] = $qty;
+          }
+
+          echo array_sum($_SESSION['cart']);
+     } else {
+          echo "0"; // Stock tidak cukup
+     }
 } else {
-     $_SESSION['cart'][$id] = $qty;
+     echo "0";
 }
-
-header("Location: index.php");
 exit;
+?>

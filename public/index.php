@@ -1,119 +1,108 @@
 <?php
+// FILE: public/index.php
+// Ini adalah halaman utama setelah user melewati welcome.php
+
 session_start();
 require "../core/database.php";
 require "../core/helpers.php";
-$products = mysqli_query($conn, "SELECT * FROM products ORDER BY id DESC");
+
+// Ambil semua produk dari database
+$products = mysqli_query($conn, "SELECT p.*, c.name as category_name 
+                                 FROM products p 
+                                 LEFT JOIN categories c ON p.category_id = c.id 
+                                 WHERE p.status = 'available' OR p.status IS NULL
+                                 ORDER BY p.id DESC");
+
+// Hitung jumlah cart dan wishlist
 $cartCount = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
+$wishlistCount = isset($_SESSION['wishlist']) ? count($_SESSION['wishlist']) : 0;
+
+// Set flag untuk navbar (biar home jadi active)
+$isHome = true;
+
+// Include navbar
+include "../components/navbar.php";
 ?>
-<!DOCTYPE html>
-<html lang="id">
 
-<head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <meta name="theme-color" content="#ffffff">
-     <title>KANTIN &mdash; The Digital Experience</title>
-     <link rel="preconnect" href="https://fonts.googleapis.com">
-     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-     <link rel="stylesheet" href="assets/css/public.css?v=<?= time() ?>">
-</head>
+<main>
+     <!-- Hero Section -->
+     <section class="hero">
+          <h1 class="glitch">KANTIN</h1>
+          <p class="reveal">The Digital Experience</p>
+     </section>
 
-<body>
-
-     <!-- 18-Column Grid Overlay -->
-     <div class="grid-overlay">
-          <?php for ($i = 0; $i < 18; $i++)
-               echo '<div></div>'; ?>
+     <!-- Marquee Band (running text) -->
+     <div class="marquee-band">
+          <div class="marquee-inner marquee">
+               <?php
+               $texts = ['FRESH DAILY', 'HANDCRAFTED', 'PREMIUM QUALITY', 'ORDER NOW', 'FAST DELIVERY'];
+               for ($i = 0; $i < 3; $i++):
+                    foreach ($texts as $text):
+                         ?>
+                         <span><?= $text ?></span>
+                         <span>●</span>
+                    <?php
+                    endforeach;
+               endfor;
+               ?>
+          </div>
      </div>
 
-     <!-- Header -->
-     <header>
-          <div class="logo">KANTIN</div>
-          <nav>
-               <a href="#menu">Menu</a>
-               <a href="cart/index.php">Cart (<?= $cartCount ?>)</a>
-               <a href="../auth/logout.php">Exit</a>
-          </nav>
-     </header>
+     <!-- Product Grid -->
+     <section class="products" id="menu">
+          <?php if (mysqli_num_rows($products) > 0): ?>
+               <?php while ($p = mysqli_fetch_assoc($products)): ?>
+                    <div class="card card-animate">
+                         <img src="uploads/<?= $p['image'] ?: 'default.jpg' ?>" alt="<?= htmlspecialchars($p['name']) ?>"
+                              loading="lazy" onerror="this.src='assets/img/default.jpg'">
+                         <div class="card-content">
+                              <small><?= htmlspecialchars($p['category_name'] ?? 'FOOD & BEVERAGE') ?></small>
+                              <h3><?= htmlspecialchars($p['name']) ?></h3>
+                              <div class="price"><?= format_rp($p['price']) ?></div>
 
-     <main>
-          <!-- Hero -->
-          <section class="hero">
-               <h1>KANTIN</h1>
-               <p>The Digital Experience</p>
-          </section>
+                              <?php if ($p['stock'] > 0): ?>
+                                   <!-- Tombol Add to Cart -->
+                                   <button class="btn-buy addCart" data-id="<?= $p['id'] ?>">
+                                        ADD TO CART →
+                                   </button>
 
-          <!-- Marquee -->
-          <div class="marquee-band">
-               <div class="marquee-inner">
-                    <span>Fresh Daily</span>
-                    <span>&bull;</span>
-                    <span>Handcrafted</span>
-                    <span>&bull;</span>
-                    <span>Premium Quality</span>
-                    <span>&bull;</span>
-                    <span>Order Now</span>
-                    <span>&bull;</span>
-                    <span>Fresh Daily</span>
-                    <span>&bull;</span>
-                    <span>Handcrafted</span>
-                    <span>&bull;</span>
-                    <span>Premium Quality</span>
-                    <span>&bull;</span>
-                    <span>Order Now</span>
-                    <span>&bull;</span>
-               </div>
-          </div>
-
-          <!-- Product Grid -->
-          <section class="products" id="menu">
-               <?php if (mysqli_num_rows($products) > 0): ?>
-                    <?php while ($p = mysqli_fetch_assoc($products)): ?>
-                         <div class="card">
-                              <img src="uploads/<?= $p['image'] ?: 'default.jpg' ?>" alt="<?= htmlspecialchars($p['name']) ?>"
-                                   loading="lazy">
-                              <div class="card-content">
-                                   <small>Edition / 2026</small>
-                                   <h3><?= htmlspecialchars($p['name']) ?></h3>
-                                   <div class="price"><?= format_rp($p['price']) ?></div>
-                                   <?php if ($p['stock'] > 0): ?>
-                                        <button class="btn-buy addCart" data-id="<?= $p['id'] ?>">
-                                             Add to Cart +
-                                        </button>
-                                   <?php else: ?>
-                                        <span class="price"
-                                             style="opacity:0.4; font-size:0.7rem; letter-spacing:0.2em; text-transform:uppercase;">
-                                             Sold Out
-                                        </span>
-                                   <?php endif; ?>
-                              </div>
+                                   <!-- Tombol Add to Wishlist -->
+                                   <button class="btn-buy addWishlist" data-id="<?= $p['id'] ?>"
+                                        style="background: transparent; color: var(--fg); margin-top: 10px;">
+                                        ♥ WISHLIST
+                                   </button>
+                              <?php else: ?>
+                                   <!-- Jika stok habis -->
+                                   <span class="sold-out">SOLD OUT</span>
+                              <?php endif; ?>
                          </div>
-                    <?php endwhile; ?>
-               <?php else: ?>
-                    <div class="empty-state">
-                         <h3>No Items</h3>
-                         <p>Menu belum tersedia saat ini</p>
                     </div>
-               <?php endif; ?>
-          </section>
-     </main>
+               <?php endwhile; ?>
+          <?php else: ?>
+               <!-- Jika tidak ada produk -->
+               <div class="empty-state">
+                    <h3>NO ITEMS AVAILABLE</h3>
+                    <p>Menu belum tersedia saat ini. Silakan cek kembali nanti.</p>
+                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'admin'): ?>
+                         <a href="../admin/products.php" class="btn-buy" style="margin-top: 20px;">TAMBAH PRODUK</a>
+                    <?php endif; ?>
+               </div>
+          <?php endif; ?>
+     </section>
+</main>
 
-     <!-- Footer -->
-     <footer>
-          <div class="footer-brand">
-               KANTIN
-               <p>&copy; <?= date('Y') ?> &mdash; All rights reserved</p>
-          </div>
-          <div class="footer-links">
-               <a href="#menu">Menu</a>
-               <a href="cart/index.php">Cart</a>
-               <a href="../auth/logout.php">Exit</a>
-          </div>
-     </footer>
+<!-- Toast Notification (untuk notifikasi add to cart) -->
+<div class="toast" id="toast">ADDED TO CART</div>
 
-     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-     <script src="assets/js/public.js?v=<?= time() ?>"></script>
+<!-- Footer -->
+<?php include "../components/footer.php"; ?>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="assets/js/public.js?v=<?= time() ?>"></script>
+<script src="assets/js/cart.js?v=<?= time() ?>"></script>
+
 </body>
 
 </html>

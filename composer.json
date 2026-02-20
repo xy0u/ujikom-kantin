@@ -1,5 +1,21 @@
 {
-    "require": {
-        "xendit/xendit-php": "^7.0"
+  "name": "rifat/kantin-digital",
+  "description": "Sistem Pemesanan Makanan Digital - UJIKOM",
+  "type": "project",
+  "require": {
+    "php": ">=7.4",
+    "xendit/xendit-php": "^2.19"
+  },
+  "authors": [
+    {
+      "name": "Rifat Dwi Purnama Sopian",
+      "email": "rifat@example.com"
     }
+  ],
+  "scripts": {
+    "post-install-cmd": [
+      "chmod 755 public/uploads/",
+      "chmod 755 public/assets/img/"
+    ]
+  }
 }

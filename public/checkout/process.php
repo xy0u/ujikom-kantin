@@ -1,163 +1,108 @@
 <?php
 session_start();
-
 require "../../core/database.php";
-require "../../vendor/autoload.php";
-require "../../kunci/xendit.php";
+require "../../core/helpers.php";
 
-use Xendit\Configuration;
-use Xendit\Invoice\InvoiceApi;
-use Xendit\Invoice\CreateInvoiceRequest;
+// Check if vendor autoload exists
+if (file_exists("../../vendor/autoload.php")) {
+     require "../../vendor/autoload.php";
+     require "../../kunci/xendit.php";
+     $useXendit = true;
+} else {
+     $useXendit = false;
+}
 
 if (!isset($_SESSION['user_id']) || empty($_SESSION['cart'])) {
      header("Location: ../index.php");
      exit;
 }
 
-Configuration::setXenditKey(XENDIT_API_KEY);
-
 $user_id = (int) $_SESSION['user_id'];
 $total = 0;
 
 mysqli_begin_transaction($conn);
-
 try {
-
-     /* ===== HITUNG TOTAL ===== */
+     // Calculate Total & Validate Stock
      foreach ($_SESSION['cart'] as $key => $qty) {
-
           $parts = explode("_", $key);
-          $product_id = (int) $parts[0];
-          $variant_id = (int) $parts[1];
+          $p_id = (int) $parts[0];
 
-          $product = mysqli_fetch_assoc(
-               mysqli_query(
-                    $conn,
-                    "SELECT * FROM products WHERE id=$product_id FOR UPDATE"
-               )
-          );
+          $res = mysqli_query($conn, "SELECT price, stock FROM products WHERE id=$p_id FOR UPDATE");
+          $p = mysqli_fetch_assoc($res);
 
-          if (!$product)
-               throw new Exception("Product tidak ditemukan");
-
-          if ($product['stock'] < $qty)
-               throw new Exception("Stock tidak cukup");
-
-          $price = (int) $product['price'];
-
-          if ($variant_id > 0) {
-               $variant = mysqli_fetch_assoc(
-                    mysqli_query(
-                         $conn,
-                         "SELECT * FROM product_variants 
-                 WHERE id=$variant_id AND product_id=$product_id"
-                    )
-               );
-
-               if ($variant) {
-                    $price += (int) $variant['extra_price']; // FIX
-               }
+          if (!$p || $p['stock'] < $qty) {
+               throw new Exception("Stok tidak mencukupi untuk salah satu produk!");
           }
 
+          $price = $p['price'];
+          if (isset($parts[1]) && (int) $parts[1] > 0) {
+               $v_id = (int) $parts[1];
+               $v_res = mysqli_query($conn, "SELECT extra_price FROM product_variants WHERE id=$v_id");
+               $v = mysqli_fetch_assoc($v_res);
+               if ($v)
+                    $price += $v['extra_price'];
+          }
           $total += $price * $qty;
      }
 
-     /* ===== INSERT ORDER ===== */
-     mysqli_query($conn, "
-        INSERT INTO orders(user_id,total,status)
-        VALUES($user_id,$total,'PENDING')
-    ");
-
+     // Save Order
+     mysqli_query($conn, "INSERT INTO orders (user_id, total, status, created_at) VALUES ($user_id, $total, 'PENDING', NOW())");
      $order_id = mysqli_insert_id($conn);
 
-     /* ===== INSERT ITEMS ===== */
+     // Save Order Items & Update Stock
      foreach ($_SESSION['cart'] as $key => $qty) {
-
           $parts = explode("_", $key);
+          $p_id = (int) $parts[0];
+          $v_id = isset($parts[1]) ? (int) $parts[1] : 0;
 
-          $product_id = (int) $parts[0];
-          $variant_id = (int) $parts[1];
+          $p_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT price FROM products WHERE id=$p_id"));
+          $final_price = $p_data['price'];
 
-          $product = mysqli_fetch_assoc(
-               mysqli_query(
-                    $conn,
-                    "SELECT * FROM products WHERE id=$product_id"
-               )
-          );
-
-          $price = (int) $product['price'];
-
-          if ($variant_id > 0) {
-               $variant = mysqli_fetch_assoc(
-                    mysqli_query(
-                         $conn,
-                         "SELECT * FROM product_variants 
-                 WHERE id=$variant_id"
-                    )
-               );
-               if ($variant) {
-                    $price += (int) $variant['extra_price']; // FIX
-               }
+          if ($v_id > 0) {
+               $v_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT extra_price FROM product_variants WHERE id=$v_id"));
+               $final_price += $v_data['extra_price'];
           }
 
-          mysqli_query($conn, "
-            INSERT INTO order_items
-            (order_id,product_id,variant_id,quantity,price)
-            VALUES($order_id,$product_id,$variant_id,$qty,$price)
-        ");
-
-          mysqli_query($conn, "
-            UPDATE products
-            SET stock = stock - $qty
-            WHERE id=$product_id
-        ");
+          mysqli_query($conn, "INSERT INTO order_items (order_id, product_id, variant_id, quantity, price) 
+                            VALUES ($order_id, $p_id, $v_id, $qty, $final_price)");
+          mysqli_query($conn, "UPDATE products SET stock = stock - $qty WHERE id=$p_id");
      }
-
-     /* ===== CREATE INVOICE ===== */
-     $api = new InvoiceApi();
-
-     $user = mysqli_fetch_assoc(
-          mysqli_query(
-               $conn,
-               "SELECT email FROM users WHERE id=$user_id"
-          )
-     );
-
-     $protocol = (!empty($_SERVER['HTTPS']) &&
-          $_SERVER['HTTPS'] !== 'off')
-          ? "https://" : "http://";
-
-     $base = $protocol . $_SERVER['HTTP_HOST']
-          . dirname(dirname($_SERVER['PHP_SELF']));
-
-     $request = new CreateInvoiceRequest([
-          'external_id' => 'ORDER-' . $order_id,
-          'amount' => $total,
-          'payer_email' => $user['email'],
-          'description' => 'Kantin Digital Payment',
-          'success_redirect_url' => $base . '/success.php?order=' . $order_id,
-          'failure_redirect_url' => $base . '/../orders.php'
-     ]);
-
-     $invoice = $api->createInvoice($request);
-
-     mysqli_query($conn, "
-        UPDATE orders
-        SET invoice_id='" . $invoice['id'] . "'
-        WHERE id=$order_id
-    ");
 
      mysqli_commit($conn);
 
-     unset($_SESSION['cart']);
+     // Clear cart
+     $_SESSION['cart'] = [];
 
-     header("Location: " . $invoice['invoice_url']);
+     // Redirect to success page
+     header("Location: success.php?order=" . $order_id);
      exit;
 
 } catch (Exception $e) {
-
      mysqli_rollback($conn);
+     ?>
+     <!DOCTYPE html>
+     <html>
 
-     echo "<h3>Checkout Error:</h3>";
-     echo $e->getMessage();
+     <head>
+          <title>Checkout Failed</title>
+          <link rel="stylesheet" href="../assets/css/public.css">
+     </head>
+
+     <body>
+          <?php include "../components/navbar.php"; ?>
+
+          <main>
+               <section class="hero" style="height: 60vh;">
+                    <h1>ERROR</h1>
+                    <p><?= $e->getMessage() ?></p>
+                    <a href="../cart/index.php" class="btn-buy" style="margin-top: 20px;">Back to Cart</a>
+               </section>
+          </main>
+
+          <?php include "../components/footer.php"; ?>
+     </body>
+
+     </html>
+     <?php
 }
+?>

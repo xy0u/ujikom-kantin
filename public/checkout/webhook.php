@@ -1,46 +1,18 @@
 <?php
 require "../../core/database.php";
-
-/* ======================
-   VERIFY CALLBACK TOKEN
-====================== */
-
-$callback_token = "ISI_CALLBACK_TOKEN_DARI_XENDIT";
+$token = "ISI_TOKEN_VERIFIKASI_DARI_DASHBOARD_XENDIT"; // Wajib isi!
 
 $headers = getallheaders();
-
-if (
-    !isset($headers['X-Callback-Token']) ||
-    $headers['X-Callback-Token'] !== $callback_token
-) {
-
+if (!isset($headers['X-Callback-Token']) || $headers['X-Callback-Token'] !== $token) {
     http_response_code(403);
-    exit("Invalid token");
+    exit;
 }
-
-/* ======================
-   GET DATA
-====================== */
 
 $data = json_decode(file_get_contents("php://input"), true);
+if ($data) {
+    $inv_id = mysqli_real_escape_string($conn, $data['id']);
+    $status = mysqli_real_escape_string($conn, $data['status']); // SETTLED / PAID
 
-if (!$data) {
-    http_response_code(400);
-    exit("No data");
+    mysqli_query($conn, "UPDATE orders SET status='$status' WHERE invoice_id='$inv_id'");
+    http_response_code(200);
 }
-
-$invoice_id = mysqli_real_escape_string($conn, $data['id']);
-$status = mysqli_real_escape_string($conn, $data['status']);
-
-/* ======================
-   UPDATE ORDER
-====================== */
-
-mysqli_query($conn, "
-UPDATE orders 
-SET status='$status'
-WHERE invoice_id='$invoice_id'
-");
-
-http_response_code(200);
-echo "OK";

@@ -1,7 +1,6 @@
 <?php
 /**
  * Fungsi untuk format Rupiah
- * Contoh: format_rp(15000) -> Rp 15.000
  */
 function format_rp($angka)
 {
@@ -9,7 +8,7 @@ function format_rp($angka)
 }
 
 /**
- * Fungsi untuk membersihkan input agar aman dari hacker (XSS)
+ * Fungsi untuk membersihkan input
  */
 function input_bersih($data)
 {
@@ -21,8 +20,7 @@ function input_bersih($data)
 }
 
 /**
- * Fungsi untuk cek status login (Pelanggan)
- * Digunakan di cart, checkout, dll agar tidak bisa diakses tanpa login
+ * Cek login pelanggan
  */
 function cek_login_pelanggan()
 {
@@ -33,16 +31,19 @@ function cek_login_pelanggan()
 }
 
 /**
- * Fungsi untuk upload gambar produk
+ * Upload gambar produk
  */
 function upload_gambar($file, $target_dir = "../public/uploads/")
 {
+     if (!is_dir($target_dir)) {
+          mkdir($target_dir, 0777, true);
+     }
+
      $nama_file = time() . "_" . basename($file["name"]);
      $target_file = $target_dir . $nama_file;
      $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
-     // Validasi format
-     $valid_extensions = ["jpg", "jpeg", "png", "webp"];
+     $valid_extensions = ["jpg", "jpeg", "png", "webp", "gif"];
      if (in_array($imageFileType, $valid_extensions)) {
           if (move_uploaded_file($file["tmp_name"], $target_file)) {
                return $nama_file;
@@ -52,7 +53,7 @@ function upload_gambar($file, $target_dir = "../public/uploads/")
 }
 
 /**
- * Fungsi untuk mengambil status badge (CSS)
+ * Get status badge class
  */
 function get_status_badge($status)
 {
@@ -63,3 +64,14 @@ function get_status_badge($status)
           return 'pending';
      return 'danger';
 }
+
+/**
+ * Get cart count
+ */
+function getCartCount()
+{
+     if (!isset($_SESSION['cart']))
+          return 0;
+     return array_sum($_SESSION['cart']);
+}
+?>

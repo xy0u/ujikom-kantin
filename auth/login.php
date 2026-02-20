@@ -2,33 +2,37 @@
 session_start();
 require "../core/database.php";
 
-$error = "";
+if (isset($_SESSION['user_id'])) {
+     header("Location: " . ($_SESSION['user_role'] == 'admin' ? "../admin/dashboard.php" : "../public/index.php"));
+     exit;
+}
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if (isset($_POST['login'])) {
      $email = mysqli_real_escape_string($conn, $_POST['email']);
      $password = $_POST['password'];
 
      $query = mysqli_query($conn, "SELECT * FROM users WHERE email='$email'");
-     $user = mysqli_fetch_assoc($query);
 
-     if ($user && password_verify($password, $user['password'])) {
-          $_SESSION['user_id'] = $user['id'];
-          $_SESSION['user_role'] = $user['role'];
-          $_SESSION['user_name'] = $user['name'];
+     if (mysqli_num_rows($query) > 0) {
+          $user = mysqli_fetch_assoc($query);
+          if (password_verify($password, $user['password'])) {
+               $_SESSION['user_id'] = $user['id'];
+               $_SESSION['user_name'] = $user['name'];
+               $_SESSION['user_role'] = $user['role'];
 
-          if ($user['role'] == "admin") {
-               header("Location: ../admin/dashboard.php");
+               header("Location: " . ($user['role'] == 'admin' ? "../admin/dashboard.php" : "../public/index.php"));
+               exit;
           } else {
-               header("Location: ../public/index.php");
+               $error = "Password yang Anda masukkan salah.";
           }
-          exit;
      } else {
-          $error = "Email atau password salah";
+          $error = "Akun dengan email tersebut tidak ditemukan.";
      }
 }
 ?>
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
      <meta charset="UTF-8">
@@ -38,31 +42,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body class="auth-body">
-     <div class="auth-box">
-          <h2>Kantin Digital</h2>
-          <p>Masuk untuk mulai memesan menu favoritmu</p>
 
-          <?php if ($error): ?>
-               <div class="auth-error"><?= $error ?></div>
+     <div class="auth-box">
+          <h2>Welcome Back</h2>
+          <p>Silakan masuk ke akun Kantin Anda</p>
+
+          <?php if (isset($error)): ?>
+               <div class="auth-error">
+                    <?= $error ?>
+               </div>
           <?php endif; ?>
 
           <form method="POST">
                <div class="form-group">
-                    <label>Alamat Email</label>
-                    <input type="email" name="email" placeholder="contoh@email.com" required>
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="nama@email.com" required
+                         value="<?= $_POST['email'] ?? '' ?>">
                </div>
 
                <div class="form-group">
-                    <label>Kata Sandi</label>
+                    <label>Password</label>
                     <input type="password" name="password" placeholder="••••••••" required>
                </div>
 
-               <button type="submit" class="btn-auth">Masuk Sekarang</button>
+               <button type="submit" name="login" class="btn-auth">
+                    Sign In
+               </button>
           </form>
 
-          <a href="register.php">Belum punya akun? <span>Daftar Disini</span></a>
+          <a href="register.php">Belum punya akun? <span>Daftar Sekarang</span></a>
      </div>
-     <script src="../public/assets/js/auth.js?v=<?= time(); ?>"></script>
+
 </body>
 
 </html>

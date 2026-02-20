@@ -1,4 +1,6 @@
-/* Reveal Effect */
+/* public/assets/css/animations.css */
+
+/* Reveal Animations */
 @keyframes revealFromBottom {
   0% {
     opacity: 0;
@@ -16,15 +18,113 @@
   animation: revealFromBottom 1.2s cubic-bezier(0.2, 1, 0.3, 1) forwards;
 }
 
-/* Toast Animation */
+@keyframes revealFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.reveal-left {
+  animation: revealFromLeft 1s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+}
+
+@keyframes revealFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.reveal-right {
+  animation: revealFromRight 1s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+}
+
+/* Scale Animation */
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+}
+
+/* Fade In Up */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeInUp 1s ease forwards;
+}
+
+/* Stagger Children */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.stagger-children > *:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.stagger-children > *:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.stagger-children > *:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.stagger-children > *:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.stagger-children > *:nth-child(5) {
+  animation-delay: 0.5s;
+}
+.stagger-children > *:nth-child(6) {
+  animation-delay: 0.6s;
+}
+
+/* Toast Notification */
 @keyframes toastIn {
   0% {
-    transform: translate(100%, -50%);
+    transform: translateX(100%) translateY(-50%);
     opacity: 0;
   }
   100% {
-    transform: translate(0, -50%);
+    transform: translateX(0) translateY(-50%);
     opacity: 1;
+  }
+}
+
+@keyframes toastOut {
+  0% {
+    transform: translateX(0) translateY(-50%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%) translateY(-50%);
+    opacity: 0;
   }
 }
 
@@ -32,23 +132,200 @@
   position: fixed;
   top: 100px;
   right: 40px;
-  background: white;
-  color: black;
-  padding: 20px 40px;
-  border-radius: 100px;
-  font-weight: 700;
-  font-size: 13px;
-  z-index: 9999;
-  letter-spacing: 1px;
-  animation: toastIn 0.6s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+  background: var(--fg);
+  color: var(--bg);
+  padding: 16px 32px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  z-index: 10000;
+  border: 2px solid var(--fg);
+  box-shadow: 8px 8px 0 var(--fg);
+  animation: toastIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Hero Stagger */
-.hero-content span {
-  display: block;
-  font-weight: 800;
-  letter-spacing: 10px;
-  color: var(--muted);
-  margin-bottom: 20px;
-  animation: revealFromBottom 1s ease forwards;
+.toast.hide {
+  animation: toastOut 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.pulse {
+  animation: pulse 2s ease infinite;
+}
+
+/* Glitch Effect */
+@keyframes glitch {
+  0%,
+  100% {
+    transform: translate(0);
+    text-shadow: none;
+  }
+  92% {
+    transform: translate(0);
+  }
+  93% {
+    transform: translate(-2px, 1px);
+    text-shadow:
+      2px 0 #ff00ff,
+      -2px 0 #00ffff;
+  }
+  94% {
+    transform: translate(2px, -1px);
+    text-shadow:
+      -2px 0 #ff00ff,
+      2px 0 #00ffff;
+  }
+  95% {
+    transform: translate(-1px, 2px);
+    text-shadow:
+      1px 0 #ff00ff,
+      -1px 0 #00ffff;
+  }
+  96% {
+    transform: translate(1px, -2px);
+    text-shadow:
+      -1px 0 #ff00ff,
+      1px 0 #00ffff;
+  }
+}
+
+.glitch {
+  animation: glitch 5s infinite;
+}
+
+/* Loading Spinner */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--fg);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Skeleton Loading */
+@keyframes skeleton {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 25%,
+    var(--border) 50%,
+    var(--surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton 1.5s infinite;
+}
+
+/* Page Transition */
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hover Effects */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+}
+
+.hover-scale {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  animation: marquee 20s linear infinite;
+}
+
+.marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Scroll Indicator */
+@keyframes scrollIndicator {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(10px);
+  }
+}
+
+.scroll-indicator {
+  animation: scrollIndicator 2s ease infinite;
+}
+
+/* Counter Animation */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.count-animate {
+  animation: countUp 0.5s ease forwards;
 }

@@ -1,100 +1,85 @@
 <?php
 session_start();
 require "../../core/database.php";
+require "../../core/helpers.php";
 
-/* ===== CEK LOGIN ===== */
 if (!isset($_SESSION['user_id'])) {
      header("Location: ../../auth/login.php");
      exit;
 }
 
-/* ===== VALIDASI ORDER ID ===== */
-if (!isset($_GET['order'])) {
-     header("Location: ../index.php");
-     exit;
-}
+$order_id = (int) ($_GET['order'] ?? 0);
+$user_id = $_SESSION['user_id'];
 
-$order_id = (int) $_GET['order'];
-
-/* ===== AMBIL ORDER ===== */
-$order = mysqli_fetch_assoc(
-     mysqli_query($conn, "
-    SELECT * FROM orders 
-    WHERE id=$order_id 
-    AND user_id=" . $_SESSION['user_id'])
-);
+$order = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM orders WHERE id=$order_id AND user_id=$user_id"));
 
 if (!$order) {
      header("Location: ../index.php");
      exit;
 }
 
-/* ===== AMBIL ITEMS ===== */
-$items = mysqli_query($conn, "
-SELECT oi.*, p.name 
-FROM order_items oi
-JOIN products p ON oi.product_id=p.id
-WHERE oi.order_id=$order_id
-");
-
-/* ===== STATUS CLASS ===== */
-$status_class = "status-pending";
-
-if ($order['status'] === "SUCCESS") {
-     $status_class = "status-success";
-} elseif ($order['status'] === "FAILED") {
-     $status_class = "status-failed";
-}
+// Get order items
+$items = mysqli_query($conn, "SELECT oi.*, p.name FROM order_items oi 
+                             JOIN products p ON oi.product_id = p.id 
+                             WHERE oi.order_id = $order_id");
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="id">
 
 <head>
-     <title>Order Detail</title>
+     <meta charset="UTF-8">
+     <title>Order Success - Kantin Digital</title>
      <link rel="stylesheet" href="../assets/css/public.css">
 </head>
 
-<body class="success-body">
+<body>
+     <?php include "../components/navbar.php"; ?>
 
-     <div class="success-box">
+     <main>
+          <section class="hero" style="height: 50vh;">
+               <h1>SUCCESS!</h1>
+               <p>Your order has been placed</p>
+          </section>
 
-          <h2>🧾 Order Detail</h2>
+          <div style="padding: 0 5% 100px;">
+               <div
+                    style="background: var(--surface); border: 3px solid var(--fg); padding: 40px; max-width: 600px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                         <span style="font-size: 4rem;">🎉</span>
+                         <h2 style="margin-top: 20px;">Order #<?= $order['id'] ?></h2>
+                         <p style="color: var(--muted);"><?= date('d M Y H:i', strtotime($order['created_at'])) ?></p>
+                    </div>
 
-          <p><strong>Order ID:</strong> #<?= $order['id'] ?></p>
+                    <hr style="margin: 20px 0; border-color: var(--border);">
 
-          <p>
-               <strong>Status:</strong>
-               <span class="<?= $status_class ?>">
-                    <?= $order['status'] ?>
-               </span>
-          </p>
+                    <div style="display: grid; gap: 15px;">
+                         <?php while ($item = mysqli_fetch_assoc($items)): ?>
+                              <div style="display: flex; justify-content: space-between;">
+                                   <span><?= htmlspecialchars($item['name']) ?> x<?= $item['quantity'] ?></span>
+                                   <span><?= format_rp($item['price'] * $item['quantity']) ?></span>
+                              </div>
+                         <?php endwhile; ?>
+                    </div>
 
-          <hr style="margin:20px 0;">
+                    <hr style="margin: 20px 0; border-color: var(--border);">
 
-          <?php
-          $grand_total = 0;
-          while ($i = mysqli_fetch_assoc($items)):
-               $subtotal = $i['price'] * $i['quantity'];
-               $grand_total += $subtotal;
-               ?>
-               <div style="margin-bottom:10px;">
-                    <?= $i['name'] ?>
-                    (<?= $i['quantity'] ?> x Rp <?= number_format($i['price']) ?>)
-                    <br>
-                    <small>Subtotal: Rp <?= number_format($subtotal) ?></small>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                         <span style="font-weight: 800;">TOTAL</span>
+                         <h3 style="font-size: 2rem;"><?= format_rp($order['total']) ?></h3>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; margin-top: 40px;">
+                         <a href="invoice.php?order=<?= $order_id ?>" class="btn-buy"
+                              style="flex: 1; text-align: center;">Download Invoice</a>
+                         <a href="../index.php" class="btn-buy"
+                              style="flex: 1; text-align: center; background: transparent; color: var(--fg);">Continue
+                              Shopping</a>
+                    </div>
                </div>
-          <?php endwhile; ?>
+          </div>
+     </main>
 
-          <hr style="margin:20px 0;">
-
-          <h3>Total: Rp <?= number_format($grand_total) ?></h3>
-
-          <br>
-          <a href="invoice.php?order=<?= $order['id'] ?>" class="btn">
-               Download Invoice
-          </a>
-          <a href="../index.php" class="btn">Back to Menu</a>
-     </div>
+     <?php include "../components/footer.php"; ?>
 </body>
 
 </html>
