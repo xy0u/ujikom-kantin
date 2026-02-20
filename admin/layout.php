@@ -3,38 +3,45 @@ if (session_status() === PHP_SESSION_NONE) {
      session_start();
 }
 
+// Proteksi Admin
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
      header("Location: ../auth/login.php");
      exit;
 }
+
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="id">
 
 <head>
-     <title>Admin Panel</title>
+     <meta charset="UTF-8">
      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <link rel="stylesheet" href="../public/assets/css/admin.css">
+     <title>Admin Panel - Kantin Digital</title>
+     <link rel="stylesheet" href="../public/assets/css/admin.css?v=<?= time(); ?>">
 </head>
 
 <body>
 
      <div class="admin-container">
-
           <aside class="sidebar">
-               <div>
-                    <h2>KANTIN</h2>
-                    <div class="admin-name"><?= $_SESSION['user_name'] ?></div>
+               <div class="brand">ADMIN PANEL</div>
 
-                    <nav>
-                         <a href="dashboard.php">Dashboard</a>
-                         <a href="products.php">Products</a>
-                         <a href="categories.php">Categories</a>
-                         <a href="orders.php">Orders</a>
-                    </nav>
+               <div class="admin-profile">
+                    <small>Logged in as</small>
+                    <p><strong><?= $_SESSION['user_name'] ?></strong></p>
                </div>
 
-               <a href="../auth/logout.php" class="logout-btn">Logout</a>
+               <nav>
+                    <a href="dashboard.php" class="<?= $current_page == 'dashboard.php' ? 'active' : '' ?>">Overview</a>
+                    <a href="products.php" class="<?= $current_page == 'products.php' ? 'active' : '' ?>">Inventory</a>
+                    <a href="categories.php"
+                         class="<?= $current_page == 'categories.php' ? 'active' : '' ?>">Categories</a>
+                    <a href="orders.php" class="<?= $current_page == 'orders.php' ? 'active' : '' ?>">Transactions</a>
+               </nav>
+
+               <a href="../auth/logout.php" class="logout-btn" onclick="return confirm('Yakin ingin keluar?')">Sign
+                    Out</a>
           </aside>
 
           <main class="main-content">

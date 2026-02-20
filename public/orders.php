@@ -1,6 +1,7 @@
 <?php
 session_start();
 require "../core/database.php";
+require "../core/helpers.php";
 
 if (!isset($_SESSION['user_id'])) {
      header("Location: ../auth/login.php");
@@ -8,79 +9,42 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+$orders = mysqli_query($conn, "SELECT * FROM orders WHERE user_id=$user_id ORDER BY id DESC");
 
-$orders = mysqli_query($conn, "
-SELECT * FROM orders 
-WHERE user_id=$user_id
-ORDER BY id DESC
-");
+include "../components/navbar.php";
 ?>
-<!DOCTYPE html>
-<html>
 
-<head>
-     <title>My Orders</title>
-     <link rel="stylesheet" href="assets/css/public.css">
-</head>
+<section class="cart-container">
+     <h1 style="margin-bottom: 40px; letter-spacing: -1px;">Pesanan Saya</h1>
 
-<body>
-
-     <header class="navbar">
-          <div class="logo">KANTIN</div>
-          <nav>
-               <a href="index.php">Menu</a>
-               <a href="cart/index.php">Cart</a>
-               <a href="../auth/logout.php">Logout</a>
-          </nav>
-     </header>
-
-     <section class="products">
-
-          <h2>My Orders</h2>
-
-          <?php if (mysqli_num_rows($orders) == 0): ?>
-               <p>Belum ada order.</p>
-          <?php else: ?>
-
-               <?php while ($o = mysqli_fetch_assoc($orders)):
-
-                    $status_class = "status-pending";
-                    if ($o['status'] == "SUCCESS")
-                         $status_class = "status-success";
-                    if ($o['status'] == "FAILED")
-                         $status_class = "status-failed";
-                    ?>
-
-                    <div class="card">
-                         <div class="card-body">
-                              <p><strong>Order #
-                                        <?= $o['id'] ?>
-                                   </strong></p>
-                              <p>Total: Rp
-                                   <?= number_format($o['total']) ?>
-                              </p>
-                              <p>Status: <span class="<?= $status_class ?>">
-                                        <?= $o['status'] ?>
-                                   </span></p>
-
-                              <a href="checkout/success.php?order=<?= $o['id'] ?>" class="btn">
-                                   Detail
-                              </a>
-
-                              <?php if ($o['status'] == "FAILED"): ?>
-                                   <a href="checkout/retry.php?order=<?= $o['id'] ?>" class="btn">
-                                        Pay Again
-                                   </a>
-                              <?php endif; ?>
-
+     <?php if (mysqli_num_rows($orders) == 0): ?>
+          <div class="card" style="text-align: center; padding: 60px;">
+               <p style="color: var(--text-muted);">Kamu belum pernah melakukan pemesanan.</p>
+               <a href="index.php" class="btn" style="width: auto; display: inline-block; margin-top: 20px;">Pesan
+                    Sekarang</a>
+          </div>
+     <?php else: ?>
+          <?php while ($o = mysqli_fetch_assoc($orders)): ?>
+               <div class="cart-item">
+                    <div>
+                         <h3 style="font-size: 18px;">Order #<?= $o['id'] ?></h3>
+                         <p style="color: var(--text-muted); font-size: 14px;"><?= date('d M Y', strtotime($o['created_at'])) ?>
+                         </p>
+                    </div>
+                    <div style="text-align: right;">
+                         <p style="font-weight: 700; margin-bottom: 5px;"><?= format_rp($o['total']) ?></p>
+                         <span class="stock-badge <?= get_status_badge($o['status']) ?>">
+                              <?= $o['status'] ?>
+                         </span>
+                         <div style="margin-top: 15px;">
+                              <a href="checkout/invoice.php?id=<?= $o['id'] ?>" class="btn"
+                                   style="padding: 8px 20px; font-size: 12px;">Detail</a>
                          </div>
                     </div>
+               </div>
+          <?php endwhile; ?>
+     <?php endif; ?>
+</section>
 
-               <?php endwhile; ?>
-
-          <?php endif; ?>
-
-     </section>
-</body>
-
-</html>
+<?php include "../components/footer.php"; ?>
+<script src="assets/js/public.js"></script>

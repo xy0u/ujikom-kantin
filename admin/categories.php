@@ -2,23 +2,29 @@
 require "../core/database.php";
 include "layout.php";
 
+// PROSES SIMPAN/UPDATE
 if (isset($_POST['save'])) {
      $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
-     $name = mysqli_real_escape_string($conn, $_POST['name']);
+     $name = $_POST['name'];
 
      if ($id > 0) {
-          mysqli_query($conn, "UPDATE categories SET name='$name' WHERE id=$id");
+          $stmt = mysqli_prepare($conn, "UPDATE categories SET name=? WHERE id=?");
+          mysqli_stmt_bind_param($stmt, "si", $name, $id);
      } else {
-          mysqli_query($conn, "INSERT INTO categories (name) VALUES ('$name')");
+          $stmt = mysqli_prepare($conn, "INSERT INTO categories (name) VALUES (?)");
+          mysqli_stmt_bind_param($stmt, "s", $name);
      }
-
+     mysqli_stmt_execute($stmt);
      header("Location: categories.php");
      exit;
 }
 
+// PROSES HAPUS
 if (isset($_GET['hapus'])) {
      $id = (int) $_GET['hapus'];
-     mysqli_query($conn, "DELETE FROM categories WHERE id=$id");
+     $stmt = mysqli_prepare($conn, "DELETE FROM categories WHERE id=?");
+     mysqli_stmt_bind_param($stmt, "i", $id);
+     mysqli_stmt_execute($stmt);
      header("Location: categories.php");
      exit;
 }
@@ -26,44 +32,46 @@ if (isset($_GET['hapus'])) {
 $edit = null;
 if (isset($_GET['edit'])) {
      $id = (int) $_GET['edit'];
-     $edit = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM categories WHERE id=$id"));
+     $result = mysqli_query($conn, "SELECT * FROM categories WHERE id=$id");
+     $edit = mysqli_fetch_assoc($result);
 }
 
 $categories = mysqli_query($conn, "SELECT * FROM categories ORDER BY id DESC");
 ?>
 
-<h1>Categories</h1>
+<div class="header-section">
+     <h1>Categories Management</h1>
+</div>
 
 <div class="card">
      <form method="POST" class="form-inline">
           <input type="hidden" name="id" value="<?= $edit['id'] ?? '' ?>">
-          <input name="name" placeholder="Category Name" value="<?= $edit['name'] ?? '' ?>" required>
-          <button name="save" class="btn"><?= $edit ? 'Update' : 'Add' ?></button>
+          <input name="name" class="form-control" placeholder="New Category Name" value="<?= $edit['name'] ?? '' ?>"
+               required>
+          <button name="save" class="btn primary"><?= $edit ? 'Update Category' : 'Add Category' ?></button>
+          <?php if ($edit): ?> <a href="categories.php" class="btn">Cancel</a> <?php endif; ?>
      </form>
 </div>
 
 <div class="card">
-     <table>
-          <tr>
-               <th>Name</th>
-               <th>Action</th>
-          </tr>
-
-          <?php while ($c = mysqli_fetch_assoc($categories)): ?>
+     <table class="styled-table">
+          <thead>
                <tr>
-                    <td><?= $c['name'] ?></td>
-                    <td>
-                         <a href="?edit=<?= $c['id'] ?>" class="btn">Edit</a>
-                         <a href="?hapus=<?= $c['id'] ?>" onclick="return confirm('Delete this category?')"
-                              class="btn danger">Delete</a>
-                    </td>
+                    <th>Category Name</th>
+                    <th width="200">Action</th>
                </tr>
-          <?php endwhile; ?>
+          </thead>
+          <tbody>
+               <?php while ($c = mysqli_fetch_assoc($categories)): ?>
+                    <tr>
+                         <td><strong><?= htmlspecialchars($c['name']) ?></strong></td>
+                         <td>
+                              <a href="?edit=<?= $c['id'] ?>" class="btn-sm edit">Edit</a>
+                              <a href="?hapus=<?= $c['id'] ?>" onclick="return confirm('Are you sure?')"
+                                   class="btn-sm danger">Delete</a>
+                         </td>
+                    </tr>
+               <?php endwhile; ?>
+          </tbody>
      </table>
 </div>
-
-</main>
-</div>
-</body>
-
-</html>
