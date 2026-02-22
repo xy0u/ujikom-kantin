@@ -5,30 +5,26 @@ require "../../core/database.php";
 header('Content-Type: application/json');
 
 $product_id = (int) ($_POST['product_id'] ?? 0);
-$variant_id = (int) ($_POST['variant_id'] ?? 0);
-$qty = (isset($_POST['qty']) && (int) $_POST['qty'] > 0) ? (int) $_POST['qty'] : 1;
+$qty = max(1, (int) ($_POST['qty'] ?? 1));
 
 if ($product_id <= 0) {
-     echo json_encode(['success' => false, 'message' => 'Invalid product']);
+     echo json_encode(['success' => false, 'message' => 'Produk tidak valid']);
      exit;
 }
 
-// Cek stok
-$query = "SELECT * FROM products WHERE id = $product_id";
-$result = mysqli_query($conn, $query);
-$product = mysqli_fetch_assoc($result);
+$product = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id = $product_id"));
 
 if (!$product) {
-     echo json_encode(['success' => false, 'message' => 'Product not found']);
+     echo json_encode(['success' => false, 'message' => 'Produk tidak ditemukan']);
      exit;
 }
 
 if ($product['stock'] < $qty) {
-     echo json_encode(['success' => false, 'message' => 'Insufficient stock']);
+     echo json_encode(['success' => false, 'message' => 'Stok tidak cukup']);
      exit;
 }
 
-$key = $product_id . "_" . $variant_id;
+$key = $product_id . "_0";
 
 if (!isset($_SESSION['cart'])) {
      $_SESSION['cart'] = [];
@@ -40,11 +36,9 @@ if (isset($_SESSION['cart'][$key])) {
      $_SESSION['cart'][$key] = $qty;
 }
 
-$cartCount = array_sum($_SESSION['cart']);
-
 echo json_encode([
      'success' => true,
-     'message' => 'Product added to cart',
-     'cartCount' => $cartCount
+     'message' => 'Produk ditambahkan',
+     'cartCount' => array_sum($_SESSION['cart'])
 ]);
-exit;
+?>

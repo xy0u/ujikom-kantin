@@ -1,117 +1,124 @@
-// Cart functionality with AJAX
-function addToCart(productId, variantId = 0, qty = 1) {
-  const button = event.target;
-  const originalText = button.innerHTML;
+// ============================================
+// KARTIN DIGITAL - CART.JS UPGRADED VERSION
+// ============================================
 
-  // Disable button and show loading
-  button.disabled = true;
-  button.innerHTML = "...";
-
-  const formData = new FormData();
-  formData.append("product_id", productId);
-  formData.append("variant_id", variantId);
-  formData.append("qty", qty);
-
-  fetch("cart/add_ajax.php", {
-    method: "POST",
-    body: formData,
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.success) {
-        // Update cart badge
-        const badge = document.getElementById("cart-badge");
-        if (badge) {
-          badge.innerText = data.cartCount;
-          badge.style.transform = "scale(1.2)";
-          setTimeout(() => {
-            badge.style.transform = "scale(1)";
-          }, 200);
-        }
-
-        // Show success message
-        showNotification("✓ " + data.message, "success");
-
-        // Animate button
-        button.style.background = "#22c55e";
-        button.innerHTML = "✓ Added";
-        setTimeout(() => {
-          button.innerHTML = originalText;
-          button.style.background = "";
-        }, 2000);
-      } else {
-        showNotification("✗ " + data.message, "error");
-      }
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-      showNotification("✗ Error adding to cart", "error");
-    })
-    .finally(() => {
-      button.disabled = false;
-    });
-}
-
-// Show notification
-function showNotification(message, type = "success") {
-  // Remove existing notification
-  const existing = document.querySelector(".cart-notification");
-  if (existing) {
-    existing.remove();
+class CartManager {
+  constructor() {
+    this.cart = {};
+    this.init();
   }
 
-  // Create notification
-  const notification = document.createElement("div");
-  notification.className = "cart-notification " + type;
-  notification.innerHTML = message;
-  notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        background: ${type === "success" ? "#22c55e" : "#ef4444"};
-        color: white;
-        padding: 12px 24px;
-        border-radius: 0;
-        font-weight: 600;
-        letter-spacing: 1px;
-        z-index: 10000;
-        animation: slideIn 0.3s ease;
-        border: 2px solid black;
-    `;
+  init() {
+    this.loadCart();
+    this.setupEventListeners();
+  }
 
-  document.body.appendChild(notification);
+  loadCart() {
+    // Cart sudah di session, kita hanya perlu membaca dari server
+    // Tapi kita bisa menyimpan state di client untuk UI yang responsif
+    this.updateCartDisplay();
+  }
 
-  // Remove after 3 seconds
-  setTimeout(() => {
-    notification.style.animation = "slideOut 0.3s ease";
-    setTimeout(() => {
-      notification.remove();
-    }, 300);
-  }, 3000);
+  async addToCart(productId, variantId = 0, qty = 1) {
+    const formData = new FormData();
+    formData.append("product_id", productId);
+    formData.append("variant_id", variantId);
+    formData.append("qty", qty);
+
+    try {
+      const response = await fetch("add_ajax.php", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        this.updateCartCount(data.cartCount);
+        this.showNotification("✓ Produk ditambahkan ke keranjang", "success");
+        return true;
+      } else {
+        this.showNotification("✗ " + data.message, "error");
+        return false;
+      }
+    } catch (error) {
+      console.error("Cart Error:", error);
+      this.showNotification("✗ Gagal menambahkan ke keranjang", "error");
+      return false;
+    }
+  }
+
+  async removeFromCart(key) {
+    try {
+      const response = await fetch(`remove.php?key=${encodeURIComponent(key)}`);
+      if (response.ok) {
+        this.showNotification("✓ Produk dihapus dari keranjang", "success");
+        return true;
+      }
+    } catch (error) {
+      console.error("Remove Error:", error);
+      this.showNotification("✗ Gagal menghapus produk", "error");
+      return false;
+    }
+  }
+
+  updateCartCount(count) {
+    const cartLink = document.querySelector('header nav a[href*="cart"]');
+    if (cartLink) {
+      let badge = cartLink.querySelector(".cart-count");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "cart-count";
+        cartLink.classList.add("cart-link");
+        cartLink.appendChild(badge);
+      }
+      badge.textContent = count;
+
+      // Animasi
+      badge.style.transform = "scale(1.5)";
+      setTimeout(() => {
+        badge.style.transform = "scale(1)";
+      }, 200);
+    }
+  }
+
+  updateCartDisplay() {
+    // Update UI keranjang jika diperlukan
+    const cartItems = document.querySelectorAll(".cart-item");
+    // Logic update display
+  }
+
+  showNotification(message, type = "success") {
+    if (typeof window.showToast === "function") {
+      window.showToast(message, type);
+    } else {
+      alert(message);
+    }
+  }
+
+  setupEventListeners() {
+    // Tombol add to cart
+    document.querySelectorAll(".add-to-cart").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const id = btn.dataset.id;
+        await this.addToCart(id);
+      });
+    });
+
+    // Tombol remove dari cart
+    document.querySelectorAll(".remove-from-cart").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const key = btn.dataset.key;
+        if (confirm("Hapus item dari keranjang?")) {
+          await this.removeFromCart(key);
+          btn.closest(".cart-item").remove();
+        }
+      });
+    });
+  }
 }
 
-// Add animation styles
-const style = document.createElement("style");
-style.innerHTML = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
+// Initialize cart manager
+const cartManager = new CartManager();

@@ -7,103 +7,139 @@ session_start();
 <head>
      <meta charset="UTF-8">
      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <title>403 - Admin Access Denied</title>
-     <link rel="stylesheet" href="../public/assets/css/admin.css">
+     <title>Akses Ditolak - Admin</title>
+     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
      <style>
+          * {
+               margin: 0;
+               padding: 0;
+               box-sizing: border-box;
+          }
+
           body {
-               background: var(--bg);
+               font-family: 'Inter', sans-serif;
+               background: #0a0a0a;
+               color: #fff;
+               height: 100vh;
                display: flex;
                align-items: center;
                justify-content: center;
-               height: 100vh;
-               margin: 0;
-               font-family: 'Inter', sans-serif;
           }
 
-          .error-box {
-               background: var(--card-bg);
-               border: 3px solid var(--danger);
-               padding: 50px;
+          .error-container {
                text-align: center;
-               max-width: 500px;
-               border-radius: var(--radius);
-               animation: shake 0.5s ease;
+               padding: 40px;
           }
 
-          @keyframes shake {
+          .error-code {
+               font-size: 120px;
+               font-weight: 900;
+               color: #ff4444;
+               text-shadow: 5px 5px 0 rgba(255, 68, 68, 0.3);
+               line-height: 1;
+               margin-bottom: 20px;
+               animation: glitch 5s infinite;
+          }
+
+          @keyframes glitch {
 
                0%,
                100% {
-                    transform: translateX(0);
+                    transform: translate(0);
                }
 
-               10%,
-               30%,
-               50%,
-               70%,
-               90% {
-                    transform: translateX(-5px);
+               92% {
+                    transform: translate(0);
                }
 
-               20%,
-               40%,
-               60%,
-               80% {
-                    transform: translateX(5px);
+               93% {
+                    transform: translate(-3px, 1px);
+               }
+
+               94% {
+                    transform: translate(3px, -1px);
                }
           }
 
-          .error-box h1 {
-               font-size: 8rem;
-               font-weight: 900;
-               line-height: 1;
-               color: var(--danger);
-               margin-bottom: 20px;
-               text-shadow: 5px 5px 0 rgba(239, 68, 68, 0.3);
-          }
-
-          .error-box h2 {
-               font-size: 2rem;
+          .error-title {
+               font-size: 32px;
                margin-bottom: 20px;
                text-transform: uppercase;
           }
 
-          .error-box p {
-               color: var(--text-muted);
+          .error-message {
+               color: #888;
                margin-bottom: 30px;
-          }
-
-          .error-box .btn-admin {
-               padding: 12px 30px;
-               font-size: 14px;
+               max-width: 500px;
           }
 
           .user-info {
-               background: var(--bg);
-               padding: 15px;
-               border-radius: 8px;
+               background: #1a1a1a;
+               border: 1px solid #333;
+               padding: 20px;
                margin: 20px 0;
-               border: 1px solid var(--border);
+               border-radius: 0;
+          }
+
+          .btn-home {
+               display: inline-block;
+               padding: 15px 40px;
+               background: #fff;
+               color: #000;
+               text-decoration: none;
+               font-weight: 600;
+               text-transform: uppercase;
+               letter-spacing: 2px;
+               border: 2px solid #fff;
+               margin: 0 10px;
+               transition: all 0.3s;
+          }
+
+          .btn-home:hover {
+               background: transparent;
+               color: #fff;
+          }
+
+          .btn-logout {
+               display: inline-block;
+               padding: 15px 40px;
+               background: transparent;
+               color: #ff4444;
+               text-decoration: none;
+               font-weight: 600;
+               text-transform: uppercase;
+               letter-spacing: 2px;
+               border: 2px solid #ff4444;
+               transition: all 0.3s;
+          }
+
+          .btn-logout:hover {
+               background: #ff4444;
+               color: #000;
           }
      </style>
 </head>
 
 <body>
-     <div class="error-box">
-          <h1>403</h1>
-          <h2>ADMIN ACCESS DENIED</h2>
+     <div class="error-container">
+          <div class="error-code">403</div>
+          <h1 class="error-title">ACCESS DENIED</h1>
+          <p class="error-message">Maaf, Anda tidak memiliki izin untuk mengakses halaman ini.</p>
 
           <?php if (isset($_SESSION['user_id'])): ?>
                <div class="user-info">
                     <p>Logged in as: <strong><?= htmlspecialchars($_SESSION['user_name'] ?? 'Unknown') ?></strong></p>
-                    <p>Role: <strong style="color: #eab308;"><?= $_SESSION['user_role'] ?? 'customer' ?></strong></p>
-                    <p style="color: var(--danger); margin-top: 10px;">⚠️ Halaman ini hanya untuk ADMIN!</p>
+                    <p>Role: <span style="color: #ffaa44;"><?= $_SESSION['user_role'] ?? 'customer' ?></span></p>
+                    <p style="color: #ff4444; margin-top: 10px;">⚠️ Halaman ini hanya untuk ADMIN!</p>
                </div>
-               <a href="../public/index.php" class="btn-admin primary">Kembali ke Beranda</a>
-               <a href="../auth/logout.php" class="btn-admin danger" style="margin-left: 10px;">Logout</a>
+               <a href="../public/index.php" class="btn-home">KEMBALI KE BERANDA</a>
+               <a href="../auth/logout.php" class="btn-logout">LOGOUT</a>
           <?php else: ?>
-               <p>Silakan login sebagai admin untuk mengakses halaman ini.</p>
-               <a href="../auth/login.php" class="btn-admin primary">Login Admin</a>
+               <div class="user-info">
+                    <p>Anda belum login</p>
+               </div>
+               <a href="../auth/login.php" class="btn-home">LOGIN ADMIN</a>
           <?php endif; ?>
      </div>
 </body>

@@ -1,55 +1,54 @@
 <?php
 session_start();
-require "../core/database.php";
-require "../core/helpers.php";
+require '../../core/database.php';
+require '../../core/helpers.php';
 
-if (!isset($_SESSION['user_id'])) {
-     header("Location: ../auth/login.php");
-     exit;
-}
-
-// Inisialisasi wishlist
-if (!isset($_SESSION['wishlist'])) {
-     $_SESSION['wishlist'] = [];
-}
-
-// Tambah ke wishlist
-if (isset($_POST['add'])) {
-     $id = (int) $_POST['id'];
-     if (!in_array($id, $_SESSION['wishlist'])) {
-          $_SESSION['wishlist'][] = $id;
+// Handle AJAX toggle
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+     header('Content-Type: application/json');
+     if (!isLoggedIn()) {
+          echo json_encode(['success' => false, 'message' => 'Harus login']);
+          exit;
      }
-     header("Location: wishlist.php");
-     exit;
-}
 
-// Hapus dari wishlist
-if (isset($_GET['remove'])) {
-     $id = (int) $_GET['remove'];
-     $key = array_search($id, $_SESSION['wishlist']);
-     if ($key !== false) {
-          unset($_SESSION['wishlist'][$key]);
-          $_SESSION['wishlist'] = array_values($_SESSION['wishlist']);
+     $data = json_decode(file_get_contents('php://input'), true);
+     $action = $data['action'] ?? '';
+     $id = (int) ($data['id'] ?? 0);
+
+     if ($action === 'toggle' && $id) {
+          if (!isset($_SESSION['wishlist']))
+               $_SESSION['wishlist'] = [];
+          $added = false;
+          if (in_array($id, $_SESSION['wishlist'])) {
+               $_SESSION['wishlist'] = array_values(array_diff($_SESSION['wishlist'], [$id]));
+          } else {
+               $_SESSION['wishlist'][] = $id;
+               $added = true;
+          }
+          echo json_encode(['success' => true, 'added' => $added]);
+          exit;
      }
-     header("Location: wishlist.php");
+
+     echo json_encode(['success' => false]);
      exit;
 }
 
-// Clear wishlist
-if (isset($_GET['clear'])) {
-     $_SESSION['wishlist'] = [];
-     header("Location: wishlist.php");
-     exit;
-}
+requireLogin();
 
-// Ambil produk wishlist
+$wishlist_ids = $_SESSION['wishlist'] ?? [];
 $products = [];
-if (!empty($_SESSION['wishlist'])) {
-     $ids = implode(',', $_SESSION['wishlist']);
-     $products = mysqli_query($conn, "SELECT * FROM products WHERE id IN ($ids)");
-}
 
-$cartCount = getCartCount();
+if (!empty($wishlist_ids)) {
+     $ids_str = implode(',', array_map('intval', $wishlist_ids));
+     $products_q = mysqli_query(
+          $conn,
+          "SELECT p.*, c.name as category_name
+         FROM products p LEFT JOIN categories c ON p.category_id = c.id
+         WHERE p.id IN ($ids_str)"
+     );
+     while ($row = mysqli_fetch_assoc($products_q))
+          $products[] = $row;
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -57,186 +56,115 @@ $cartCount = getCartCount();
 <head>
      <meta charset="UTF-8">
      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <title>Wishlist - Kantin Digital</title>
-     <link rel="stylesheet" href="assets/css/public.css">
-     <style>
-          .wishlist-header {
-               padding: 150px 5% 50px;
-               text-align: center;
-               background: var(--surface);
-               border-bottom: 3px solid var(--fg);
-          }
-
-          .wishlist-header h1 {
-               font-size: 4rem;
-               font-weight: 900;
-               margin-bottom: 10px;
-          }
-
-          .wishlist-actions {
-               max-width: 1200px;
-               margin: 30px auto;
-               padding: 0 20px;
-               display: flex;
-               justify-content: space-between;
-               align-items: center;
-          }
-
-          .wishlist-count {
-               font-size: 0.9rem;
-               color: var(--muted);
-          }
-
-          .clear-wishlist {
-               color: #ef4444;
-               text-decoration: none;
-               border-bottom: 1px solid transparent;
-               transition: all 0.3s;
-          }
-
-          .clear-wishlist:hover {
-               border-bottom-color: #ef4444;
-          }
-
-          .empty-wishlist {
-               grid-column: 1 / -1;
-               padding: 100px 40px;
-               text-align: center;
-          }
-
-          .empty-wishlist h3 {
-               font-size: 2rem;
-               margin-bottom: 20px;
-          }
-
-          .empty-wishlist p {
-               color: var(--muted);
-               margin-bottom: 30px;
-          }
-
-          .wishlist-badge {
-               position: absolute;
-               top: 20px;
-               right: 20px;
-               background: var(--fg);
-               color: var(--bg);
-               padding: 5px 10px;
-               font-size: 0.7rem;
-               font-weight: 600;
-               z-index: 10;
-          }
-
-          .card {
-               position: relative;
-          }
-
-          .remove-wishlist {
-               position: absolute;
-               top: 20px;
-               left: 20px;
-               background: #ef4444;
-               color: white;
-               width: 30px;
-               height: 30px;
-               display: flex;
-               align-items: center;
-               justify-content: center;
-               text-decoration: none;
-               font-weight: 800;
-               z-index: 20;
-               border: 2px solid var(--fg);
-               transition: all 0.3s;
-          }
-
-          .remove-wishlist:hover {
-               background: #dc2626;
-               transform: scale(1.1);
-          }
-     </style>
+     <title>Wishlist — Kantin Digital</title>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+          rel="stylesheet">
+     <link rel="stylesheet" href="/public/assets/css/public.css">
 </head>
 
 <body>
-     <!-- Header -->
-     <header>
-          <div class="logo">KANTIN</div>
-          <nav>
-               <a href="index.php">Home</a>
-               <a href="index.php#menu">Menu</a>
-               <a href="cart/index.php">Cart (<?= $cartCount ?>)</a>
-               <a href="wishlist.php" class="active">Wishlist (<?= count($_SESSION['wishlist']) ?>)</a>
-               <a href="../auth/logout.php">Exit</a>
-          </nav>
-     </header>
+     <?php include '../../components/navbar.php'; ?>
+     <div class="toast-container" id="toastContainer"></div>
 
-     <main>
-          <!-- Wishlist Header -->
-          <section class="wishlist-header">
-               <h1>WISHLIST</h1>
-               <p>Your favorite items</p>
-          </section>
-
-          <!-- Wishlist Actions -->
-          <?php if (!empty($_SESSION['wishlist'])): ?>
-               <div class="wishlist-actions">
-                    <span class="wishlist-count"><?= count($_SESSION['wishlist']) ?> items in wishlist</span>
-                    <a href="?clear=1" class="clear-wishlist" onclick="return confirm('Clear all wishlist?')">Clear
-                         Wishlist</a>
+     <main class="section">
+          <div class="container">
+               <div class="page-header">
+                    <h1 class="page-title">Wishlist</h1>
+                    <p class="page-subtitle"><?= count($products) ?> produk tersimpan</p>
                </div>
-          <?php endif; ?>
 
-          <!-- Product Grid -->
-          <section class="products">
-               <?php if (!empty($_SESSION['wishlist']) && mysqli_num_rows($products) > 0): ?>
-                    <?php while ($p = mysqli_fetch_assoc($products)): ?>
-                         <div class="card">
-                              <span class="wishlist-badge">❤️ WISHLIST</span>
-                              <a href="?remove=<?= $p['id'] ?>" class="remove-wishlist"
-                                   onclick="return confirm('Remove from wishlist?')">✕</a>
-                              <img src="uploads/<?= $p['image'] ?: 'default.jpg' ?>" alt="<?= htmlspecialchars($p['name']) ?>"
-                                   loading="lazy" onerror="this.src='assets/img/default.jpg'">
-                              <div class="card-content">
-                                   <small>WISHLIST ITEM</small>
-                                   <h3><?= htmlspecialchars($p['name']) ?></h3>
-                                   <div class="price"><?= format_rp($p['price']) ?></div>
-                                   <?php if ($p['stock'] > 0): ?>
-                                        <button class="btn-buy addCart" data-id="<?= $p['id'] ?>">
-                                             Add to Cart +
-                                        </button>
-                                   <?php else: ?>
-                                        <span class="sold-out">Sold Out</span>
-                                   <?php endif; ?>
-                              </div>
+               <?php if (empty($products)): ?>
+                    <div class="empty-state">
+                         <div class="empty-state-icon">
+                              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                   stroke-width="1.5">
+                                   <path
+                                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                              </svg>
                          </div>
-                    <?php endwhile; ?>
+                         <h3 class="empty-state-title">Wishlist kosong</h3>
+                         <p class="empty-state-desc">Tambahkan produk favorit ke wishlist Anda.</p>
+                         <a href="/public/index.php" class="btn btn--primary">Lihat Menu</a>
+                    </div>
                <?php else: ?>
-                    <div class="empty-wishlist">
-                         <h3>❤️ EMPTY WISHLIST</h3>
-                         <p>You haven't added any items to your wishlist yet.</p>
-                         <div class="suggestions">
-                              <p style="margin-top: 20px;">
-                                   <a href="index.php#menu" class="btn-buy">Browse Menu</a>
-                              </p>
-                         </div>
+                    <div class="products-grid">
+                         <?php foreach ($products as $p): ?>
+                              <?php $imgSrc = $p['image'] ? '/public/assets/uploads/' . $p['image'] : '/public/assets/img/placeholder.png'; ?>
+                              <article class="product-card" data-id="<?= $p['id'] ?>">
+                                   <div class="product-card__img-wrap">
+                                        <a href="/public/product.php?id=<?= $p['id'] ?>">
+                                             <img src="<?= e($imgSrc) ?>" alt="<?= e($p['name']) ?>" class="product-card__img"
+                                                  loading="lazy">
+                                        </a>
+                                        <button class="product-card__wishlist active"
+                                             onclick="removeFromWishlist(<?= $p['id'] ?>, this)" aria-label="Hapus dari wishlist">
+                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
+                                                  stroke="currentColor" stroke-width="2">
+                                                  <path
+                                                       d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                             </svg>
+                                        </button>
+                                   </div>
+                                   <div class="product-card__body">
+                                        <div class="product-card__category"><?= e($p['category_name'] ?? '') ?></div>
+                                        <h3 class="product-card__name"><a
+                                                  href="/public/product.php?id=<?= $p['id'] ?>"><?= e($p['name']) ?></a></h3>
+                                        <div class="product-card__footer">
+                                             <div class="product-card__price"><?= formatRupiah($p['price']) ?></div>
+                                             <?php if ($p['stock'] > 0): ?>
+                                                  <button class="btn btn--primary btn--sm"
+                                                       onclick="addToCart(<?= $p['id'] ?>, '<?= e(addslashes($p['name'])) ?>', <?= $p['price'] ?>)">+
+                                                       Keranjang</button>
+                                             <?php else: ?>
+                                                  <span class="badge badge--danger">Habis</span>
+                                             <?php endif; ?>
+                                        </div>
+                                   </div>
+                              </article>
+                         <?php endforeach; ?>
                     </div>
                <?php endif; ?>
-          </section>
+          </div>
      </main>
 
-     <!-- Footer -->
-     <footer>
-          <div class="footer-brand">
-               KANTIN
-               <p>&copy; <?= date('Y') ?> — All rights reserved</p>
-          </div>
-          <div class="footer-links">
-               <a href="index.php#menu">Menu</a>
-               <a href="cart/index.php">Cart</a>
-               <a href="wishlist.php">Wishlist</a>
-          </div>
-     </footer>
+     <?php include '../../components/footer.php'; ?>
+     <script>
+          async function removeFromWishlist(id, btn) {
+               const res = await fetch('/public/wishlist.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'toggle', id })
+               });
+               const data = await res.json();
+               if (data.success && !data.added) {
+                    const card = btn.closest('.product-card');
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                    showToast('Dihapus dari wishlist', 'success');
+               }
+          }
 
-     <script src="assets/js/public.js"></script>
-     <script src="assets/js/cart.js"></script>
+          async function addToCart(id, name, price) {
+               const res = await fetch('/public/cart/action.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add', id, name, price, qty: 1 })
+               });
+               const data = await res.json();
+               if (data.success) showToast(`${name} ditambahkan!`, 'success');
+          }
+
+          function showToast(msg, type) {
+               const c = document.getElementById('toastContainer');
+               const t = document.createElement('div');
+               t.className = `toast toast--${type}`;
+               t.innerHTML = `<span>${msg}</span><button onclick="this.parentElement.remove()">&times;</button>`;
+               c.appendChild(t);
+               setTimeout(() => t.classList.add('show'), 10);
+               setTimeout(() => t.remove(), 4000);
+          }
+     </script>
 </body>
 
 </html>
